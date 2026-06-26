@@ -1,5 +1,7 @@
 # MCP PlayWright
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 AI-powered browser automation framework that generates Playwright test suites from plain-text prompts.
 
 ## Overview
@@ -62,3 +64,7 @@ pytest
 | `openai` (default) | `OPENAI_API_KEY` |
 | `claude` | `ANTHROPIC_API_KEY` |
 | `ollama` | Ollama running locally + `LLM_MODEL=<model>` |
+
+## License
+
+[MIT](LICENSE) © 2026 Guilherme Fabio Vieira
