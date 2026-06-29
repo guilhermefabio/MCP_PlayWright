@@ -5,14 +5,11 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
 .pytest_cache/
 .venv/
-venv/
-env/
-*.egg-info/
-dist/
-build/
+
+# IDE
+.vscode/
 
 # Playwright
 test-results/
@@ -22,4 +19,4 @@ playwright-report/
 pages/
 tests/
 
-*uv.lock
+uv.lock
