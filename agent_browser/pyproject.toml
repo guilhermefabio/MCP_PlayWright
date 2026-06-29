@@ -1,7 +1,7 @@
 [project]
-name = "auditoria-tests"
+name = "mcp-playwright"
 version = "0.1.0"
-description = "Gerador de testes Playwright via LLM"
+description = "AI-powered Playwright test generator — describe a user flow in plain text and get Page Object Model + pytest files"
 requires-python = ">=3.12"
 dependencies = [
     "playwright>=1.40.0",
@@ -9,6 +9,8 @@ dependencies = [
     "pytest-playwright>=0.5.0",
     "python-dotenv>=1.0.0",
     "anthropic>=0.40.0",
-    "mcp>=1.0.0",
     "openai>=1.0.0",
 ]
+
+[project.scripts]
+mcp-playwright = "main:main"

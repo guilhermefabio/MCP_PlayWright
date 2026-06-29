@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 """
-Gerador de fluxos de teste usando LLM + Playwright Python.
+Playwright test generator powered by LLM.
 
-Uso:
-    python main.py "Descreva o fluxo" [--url URL] [--user USER] [--password PASS]
+Usage:
+    python main.py "Describe the flow" [--url URL] [--user USER] [--password PASS]
                    [--provider PROV] [--model MODEL] [--headless] [--output DIR]
-                   [--context TEXTO]
+                   [--context TEXT]
 
-Exemplos:
-    python main.py "Login e módulo Auditoria" --url https://app.com --user admin --password 123
-    python main.py "Testar checkout" --url https://loja.com --headless --provider claude
-    python main.py "Criar relatório" --url https://erp.com --user ops --password x \\
-        --context "Após login redireciona para /dashboard. Menu lateral tem 'Relatórios'."
+Examples:
+    python main.py "Login and navigate to Auditoria" --url https://app.com --user admin --password 123
+    python main.py "Test checkout" --url https://shop.com --headless --provider claude
+    python main.py "Create report" --url https://erp.com --user ops --password x \\
+        --context "After login redirects to /dashboard. Sidebar has 'Relatórios'."
 
-Provedor LLM (--provider ou LLM_PROVIDER no .env):
-    openai  — OpenAI GPT  (padrão; requer OPENAI_API_KEY)
-    claude  — Anthropic   (requer ANTHROPIC_API_KEY)
-    ollama  — Ollama local (requer OLLAMA_BASE_URL e LLM_MODEL)
+LLM provider (--provider or LLM_PROVIDER in .env):
+    openai  — OpenAI GPT  (default; requires OPENAI_API_KEY)
+    claude  — Anthropic   (requires ANTHROPIC_API_KEY)
+    ollama  — Local Ollama (requires OLLAMA_BASE_URL and LLM_MODEL)
 """
 
 import argparse
 import asyncio
+import logging
 import os
 from pathlib import Path
 
@@ -31,38 +32,46 @@ from agent.runner import TaskConfig, run_agent
 BASE_DIR = Path(__file__).parent
 
 
+def _configure_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+    )
+
+
 def main() -> None:
+    _configure_logging()
     load_dotenv(BASE_DIR / ".env")
 
     parser = argparse.ArgumentParser(
-        description="Gerador de testes Playwright via LLM",
+        description="Playwright test generator powered by LLM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("prompt", help="Descrição do fluxo de teste a gerar")
-    parser.add_argument("--url", help="URL base do sistema (substitui BASE_URL do .env)")
-    parser.add_argument("--user", help="Usuário de login (substitui LOGIN_USER do .env)")
-    parser.add_argument("--password", help="Senha de login (substitui LOGIN_PASSWORD do .env)")
+    parser.add_argument("prompt", help="Natural language description of the flow to generate")
+    parser.add_argument("--url", help="Base URL of the application (overrides BASE_URL in .env)")
+    parser.add_argument("--user", help="Login username (overrides LOGIN_USER in .env)")
+    parser.add_argument("--password", help="Login password (overrides LOGIN_PASSWORD in .env)")
     parser.add_argument(
         "--provider",
         choices=["openai", "claude", "ollama"],
-        help="Provedor LLM (substitui LLM_PROVIDER do .env)",
+        help="LLM provider (overrides LLM_PROVIDER in .env)",
     )
-    parser.add_argument("--model", help="Modelo LLM (substitui LLM_MODEL do .env)")
+    parser.add_argument("--model", help="LLM model name (overrides LLM_MODEL in .env)")
     parser.add_argument(
         "--headless",
         action="store_true",
-        help="Executar o browser sem janela visível",
+        help="Run the browser without a visible window",
     )
     parser.add_argument(
         "--output", "-o",
         default=".",
-        help="Diretório de saída dos arquivos gerados (padrão: diretório atual)",
+        help="Output directory for generated files (default: current directory)",
     )
     parser.add_argument(
         "--context", "-c",
         default="",
-        help="Contexto adicional sobre o site (ex: 'usa React, login em /auth, sem senha pré-definida')",
+        help="Extra context about the site (e.g. 'uses React, login at /auth')",
     )
 
     args = parser.parse_args()
