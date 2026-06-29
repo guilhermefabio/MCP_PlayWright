@@ -21,3 +21,5 @@ playwright-report/
 # Gerado pelo agente (commitar após revisão)
 pages/
 tests/
+
+*uv.lock
