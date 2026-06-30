@@ -27,7 +27,7 @@ AI-powered browser automation framework that generates complete Playwright test 
 
 ---
 
-## How it works — plain-English guide
+## How it works 
 
 > This section explains the project in simple terms with analogies and illustrations. If you are already familiar with the technical side, jump straight to [Overview](#overview).
 
