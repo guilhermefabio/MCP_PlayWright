@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from agent.runner import TaskConfig
 
 
-def build_system_prompt(config: "TaskConfig") -> str:
+def build_system_prompt(config: TaskConfig) -> str:
     login_section = ""
     if config.user or config.password:
         login_section = """\

@@ -41,7 +41,7 @@ def _configure_logging() -> None:
 
 def main() -> None:
     _configure_logging()
-    load_dotenv(BASE_DIR / ".env")
+    load_dotenv(BASE_DIR.parent / ".env")
 
     parser = argparse.ArgumentParser(
         description="Playwright test generator powered by LLM",
@@ -64,12 +64,14 @@ def main() -> None:
         help="Run the browser without a visible window",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default=".",
         help="Output directory for generated files (default: current directory)",
     )
     parser.add_argument(
-        "--context", "-c",
+        "--context",
+        "-c",
         default="",
         help="Extra context about the site (e.g. 'uses React, login at /auth')",
     )

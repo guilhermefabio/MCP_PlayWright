@@ -3,7 +3,8 @@
 import asyncio
 import json
 
-from playwright.async_api import async_playwright, Frame, Page
+from playwright.async_api import Browser as PlaywrightBrowser
+from playwright.async_api import Frame, Page, Playwright, async_playwright
 
 # Timeouts (ms)
 _TIMEOUT_NAVIGATE = 30_000
@@ -22,8 +23,8 @@ class Browser:
 
     def __init__(self, headless: bool = False) -> None:
         self._headless = headless
-        self._pw = None
-        self._browser = None
+        self._pw: Playwright | None = None
+        self._browser: PlaywrightBrowser | None = None
         self._page: Page | None = None
         self._active_frame: Frame | None = None  # None = main page context
         self._console_messages: list[dict] = []
@@ -111,15 +112,19 @@ class Browser:
     async def get_frames(self) -> str:
         frames = []
         for i, frame in enumerate(self._page.frames):
-            frames.append({
-                "index": i,
-                "name": frame.name,
-                "url": frame.url,
-                "is_active": frame is self._active_frame,
-            })
+            frames.append(
+                {
+                    "index": i,
+                    "name": frame.name,
+                    "url": frame.url,
+                    "is_active": frame is self._active_frame,
+                }
+            )
         return json.dumps(frames, indent=2, ensure_ascii=False)
 
-    async def switch_frame(self, index: int | None = None, name: str | None = None, url_contains: str | None = None) -> str:
+    async def switch_frame(
+        self, index: int | None = None, name: str | None = None, url_contains: str | None = None
+    ) -> str:
         frames = self._page.frames
         if index is not None:
             if index < 0 or index >= len(frames):
@@ -234,11 +239,13 @@ class Browser:
 
     async def handle_dialog(self, accept: bool = True, prompt_text: str = "") -> str:
         """Register a one-shot handler for the next browser dialog (alert/confirm/prompt)."""
+
         async def _handler(dialog):
             if accept:
                 await dialog.accept(prompt_text or "")
             else:
                 await dialog.dismiss()
+
         self._page.once("dialog", _handler)
         action = "aceitar" if accept else "recusar"
         return f"Handler de diálogo configurado para {action}"

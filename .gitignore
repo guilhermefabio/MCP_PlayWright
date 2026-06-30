@@ -19,4 +19,4 @@ playwright-report/
 pages/
 tests/
 
-uv.lock
+*uv.lock

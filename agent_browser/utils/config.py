@@ -22,7 +22,7 @@ class Config:
     def _require(var_name: str) -> str:
         value = os.getenv(var_name)
         if not value:
-            raise EnvironmentError(
+            raise OSError(
                 f"Required environment variable not set: {var_name}\n"
                 f"Create a .env file based on .env.example"
             )

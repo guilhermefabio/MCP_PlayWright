@@ -1,3 +1,3 @@
-from agent.runner import run_agent, TaskConfig
+from agent.runner import TaskConfig, run_agent
 
-__all__ = ["run_agent", "TaskConfig"]
+__all__ = ["TaskConfig", "run_agent"]

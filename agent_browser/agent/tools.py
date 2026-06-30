@@ -1,10 +1,9 @@
-import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from agent.browser import Browser
 
-TOOLS_OPENAI = [
+TOOLS_OPENAI: list[dict[str, Any]] = [
     # ── Navigation ──────────────────────────────────────────────────────────
     {
         "type": "function",
@@ -119,9 +118,15 @@ TOOLS_OPENAI = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "index": {"type": "integer", "description": "Index do frame (0 = frame principal)"},
+                    "index": {
+                        "type": "integer",
+                        "description": "Index do frame (0 = frame principal)",
+                    },
                     "name": {"type": "string", "description": "Atributo name/id do iframe no HTML"},
-                    "url_contains": {"type": "string", "description": "Trecho da URL do frame para busca parcial"},
+                    "url_contains": {
+                        "type": "string",
+                        "description": "Trecho da URL do frame para busca parcial",
+                    },
                 },
             },
         },
@@ -180,7 +185,11 @@ TOOLS_OPENAI = [
                 "properties": {
                     "selector": {"type": "string"},
                     "text": {"type": "string"},
-                    "delay": {"type": "integer", "description": "Delay em ms entre teclas (padrão: 0)", "default": 0},
+                    "delay": {
+                        "type": "integer",
+                        "description": "Delay em ms entre teclas (padrão: 0)",
+                        "default": 0,
+                    },
                 },
                 "required": ["selector", "text"],
             },
@@ -216,8 +225,14 @@ TOOLS_OPENAI = [
                         "items": {
                             "type": "object",
                             "properties": {
-                                "selector": {"type": "string", "description": "Seletor CSS do campo"},
-                                "value": {"type": "string", "description": "Valor a preencher/selecionar (não usado em check/uncheck)"},
+                                "selector": {
+                                    "type": "string",
+                                    "description": "Seletor CSS do campo",
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "description": "Valor a preencher/selecionar (não usado em check/uncheck)",
+                                },
                                 "action": {
                                     "type": "string",
                                     "enum": ["fill", "select", "check", "uncheck"],
@@ -278,7 +293,10 @@ TOOLS_OPENAI = [
                 "type": "object",
                 "properties": {
                     "selector": {"type": "string", "description": "Seletor CSS do <select>"},
-                    "value": {"type": "string", "description": "Valor, texto visível ou index da opção"},
+                    "value": {
+                        "type": "string",
+                        "description": "Valor, texto visível ou index da opção",
+                    },
                 },
                 "required": ["selector", "value"],
             },
@@ -292,7 +310,10 @@ TOOLS_OPENAI = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "source_selector": {"type": "string", "description": "Seletor CSS do elemento a arrastar"},
+                    "source_selector": {
+                        "type": "string",
+                        "description": "Seletor CSS do elemento a arrastar",
+                    },
                     "target_selector": {"type": "string", "description": "Seletor CSS do destino"},
                 },
                 "required": ["source_selector", "target_selector"],
@@ -307,7 +328,10 @@ TOOLS_OPENAI = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "selector": {"type": "string", "description": "Seletor CSS do input[type=file]"},
+                    "selector": {
+                        "type": "string",
+                        "description": "Seletor CSS do input[type=file]",
+                    },
                     "paths": {
                         "type": "array",
                         "items": {"type": "string"},
@@ -452,57 +476,59 @@ async def call_tool(browser: "Browser", name: str, args: dict) -> str:
     try:
         dispatch = {
             # Navigation
-            "browser_navigate":          lambda: browser.navigate(args["url"]),
-            "browser_navigate_back":     lambda: browser.navigate_back(),
-            "browser_navigate_forward":  lambda: browser.navigate_forward(),
-            "browser_reload":            lambda: browser.reload(),
-            "browser_get_url":           lambda: browser.get_url(),
+            "browser_navigate": lambda: browser.navigate(args["url"]),
+            "browser_navigate_back": lambda: browser.navigate_back(),
+            "browser_navigate_forward": lambda: browser.navigate_forward(),
+            "browser_reload": lambda: browser.reload(),
+            "browser_get_url": lambda: browser.get_url(),
             # Frames
-            "browser_get_frames":        lambda: browser.get_frames(),
-            "browser_switch_frame":      lambda: browser.switch_frame(
-                                             args.get("index"),
-                                             args.get("name"),
-                                             args.get("url_contains"),
-                                         ),
+            "browser_get_frames": lambda: browser.get_frames(),
+            "browser_switch_frame": lambda: browser.switch_frame(
+                args.get("index"),
+                args.get("name"),
+                args.get("url_contains"),
+            ),
             "browser_switch_main_frame": lambda: browser.switch_main_frame(),
             # Snapshot / Inspection
-            "browser_snapshot":          lambda: browser.snapshot(),
-            "browser_get_inputs":        lambda: browser.get_inputs(),
-            "browser_get_text":          lambda: browser.get_text(),
-            "browser_get_html":          lambda: browser.get_html(args.get("selector", "body")),
+            "browser_snapshot": lambda: browser.snapshot(),
+            "browser_get_inputs": lambda: browser.get_inputs(),
+            "browser_get_text": lambda: browser.get_text(),
+            "browser_get_html": lambda: browser.get_html(args.get("selector", "body")),
             "browser_get_console_messages": lambda: browser.get_console_messages(),
             # Interaction
-            "browser_click":             lambda: browser.click(args["selector"]),
-            "browser_fill":              lambda: browser.fill(args["selector"], args["value"]),
-            "browser_fill_form":         lambda: browser.fill_form(args["fields"]),
-            "browser_check":             lambda: browser.check(args["selector"]),
-            "browser_uncheck":           lambda: browser.uncheck(args["selector"]),
-            "browser_type":              lambda: browser.type_text(args["selector"], args["text"], args.get("delay", 0)),
-            "browser_press_key":         lambda: browser.press_key(args["key"]),
-            "browser_hover":             lambda: browser.hover(args["selector"]),
-            "browser_select_option":     lambda: browser.select_option(args["selector"], args["value"]),
-            "browser_drag":              lambda: browser.drag(args["source_selector"], args["target_selector"]),
-            "browser_file_upload":       lambda: browser.file_upload(args["selector"], args["paths"]),
-            "browser_scroll":            lambda: browser.scroll(
-                                             args.get("direction", "down"),
-                                             args.get("amount", 300),
-                                             args.get("selector", ""),
-                                         ),
+            "browser_click": lambda: browser.click(args["selector"]),
+            "browser_fill": lambda: browser.fill(args["selector"], args["value"]),
+            "browser_fill_form": lambda: browser.fill_form(args["fields"]),
+            "browser_check": lambda: browser.check(args["selector"]),
+            "browser_uncheck": lambda: browser.uncheck(args["selector"]),
+            "browser_type": lambda: browser.type_text(
+                args["selector"], args["text"], args.get("delay", 0)
+            ),
+            "browser_press_key": lambda: browser.press_key(args["key"]),
+            "browser_hover": lambda: browser.hover(args["selector"]),
+            "browser_select_option": lambda: browser.select_option(args["selector"], args["value"]),
+            "browser_drag": lambda: browser.drag(args["source_selector"], args["target_selector"]),
+            "browser_file_upload": lambda: browser.file_upload(args["selector"], args["paths"]),
+            "browser_scroll": lambda: browser.scroll(
+                args.get("direction", "down"),
+                args.get("amount", 300),
+                args.get("selector", ""),
+            ),
             # JavaScript
-            "browser_evaluate":          lambda: browser.evaluate(args["script"]),
+            "browser_evaluate": lambda: browser.evaluate(args["script"]),
             # Dialogs
-            "browser_handle_dialog":     lambda: browser.handle_dialog(
-                                             args.get("accept", True),
-                                             args.get("prompt_text", ""),
-                                         ),
+            "browser_handle_dialog": lambda: browser.handle_dialog(
+                args.get("accept", True),
+                args.get("prompt_text", ""),
+            ),
             # Screenshot
-            "browser_take_screenshot":   lambda: browser.take_screenshot(
-                                             args.get("path", "screenshot.png"),
-                                             args.get("full_page", False),
-                                         ),
+            "browser_take_screenshot": lambda: browser.take_screenshot(
+                args.get("path", "screenshot.png"),
+                args.get("full_page", False),
+            ),
             # Misc
-            "browser_wait":              lambda: browser.wait(args.get("milliseconds", 1000)),
-            "browser_resize":            lambda: browser.resize(args["width"], args["height"]),
+            "browser_wait": lambda: browser.wait(args.get("milliseconds", 1000)),
+            "browser_resize": lambda: browser.resize(args["width"], args["height"]),
         }
         if name in dispatch:
             return await dispatch[name]()

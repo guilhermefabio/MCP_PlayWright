@@ -1,8 +1,9 @@
 # MCP PlayWright
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue)](https://www.python.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-green)](https://playwright.dev/)
+[![Lint](https://github.com/seu-usuario/MCP_PlayWright/actions/workflows/lint.yml/badge.svg)](https://github.com/seu-usuario/MCP_PlayWright/actions/workflows/lint.yml)
 
 AI-powered browser automation framework that generates complete Playwright test suites — Page Object Model + pytest — from plain-text prompts. Supports OpenAI, Anthropic Claude and Ollama out of the box.
 
@@ -11,15 +12,17 @@ AI-powered browser automation framework that generates complete Playwright test 
 ## Table of Contents
 
 - [Overview](#overview)
-- [How it works — flowcharts](#how-it-works--flowcharts)
+- [How it works](#how-it-works)
 - [Repository structure](#repository-structure)
 - [Quick start](#quick-start)
 - [CLI reference](#cli-reference)
 - [LLM providers](#llm-providers)
-- [Browser tools (agent capabilities)](#browser-tools-agent-capabilities)
+- [Browser tools](#browser-tools)
 - [Generated output](#generated-output)
 - [Running generated tests](#running-generated-tests)
+- [Code quality](#code-quality)
 - [Advanced usage](#advanced-usage)
+- [Environment variables](#environment-variables)
 - [License](#license)
 
 ---
@@ -38,9 +41,9 @@ No manual selector hunting. No brittle CSS hardcoding.
 
 ---
 
-## How it works — flowcharts
+## How it works
 
-### 1 — Agent execution loop
+### Agent execution loop
 
 ```mermaid
 flowchart TD
@@ -60,9 +63,7 @@ flowchart TD
     L --> M([Done])
 ```
 
----
-
-### 2 — Browser interaction flow
+### Browser interaction flow
 
 ```mermaid
 flowchart LR
@@ -71,29 +72,27 @@ flowchart LR
     end
 
     subgraph Tools["Browser Tools"]
-        T1[browser_navigate]
-        T2[browser_get_inputs]
-        T3[browser_snapshot]
-        T4[browser_click]
-        T5[browser_fill]
-        T6[browser_press_key]
-        T7[browser_get_text]
-        T8[browser_get_html]
-        T9[browser_wait]
+        T1[navigate]
+        T2[get_inputs]
+        T3[snapshot]
+        T4[click / fill]
+        T5[press_key]
+        T6[get_text / get_html]
+        T7[get_frames / switch_frame]
+        T8[get_console_messages]
+        T9[wait / resize]
     end
 
     subgraph Browser["Chromium (Playwright)"]
         B1[Real page DOM]
     end
 
-    P -->|calls| T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 & T9
-    T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 & T9 -->|interacts with| B1
-    B1 -->|returns result| P
+    P -->|calls| Tools
+    Tools -->|interacts with| B1
+    B1 -->|result| P
 ```
 
----
-
-### 3 — File generation flow
+### File generation flow
 
 ```mermaid
 flowchart TD
@@ -102,22 +101,20 @@ flowchart TD
     C --> D[Create directories recursively]
     D --> E[Write pages/*.py]
     D --> F[Write tests/*.py]
-    B -->|No| G{Contains\nmarkdown fenced block\nwith # path comment?}
+    B -->|No| G{Markdown fenced block\nwith # path comment?}
     G -->|Yes| H[Extract path from first comment line]
     H --> D
-    G -->|No| I[Print warning:\nnenhum arquivo gerado]
+    G -->|No| I[Warning: no files generated]
 ```
 
----
-
-### 4 — LLM provider selection
+### LLM provider selection
 
 ```mermaid
 flowchart TD
     A[--provider or LLM_PROVIDER env] --> B{Provider?}
-    B -->|openai| C[OpenAI client\nGPT-4o default]
+    B -->|openai| C[OpenAI client\ngpt-4o default]
     B -->|claude| D[Anthropic client\nclaude-sonnet-4-6 default]
-    B -->|ollama| E[OpenAI-compat client\npointing to localhost:11434\nllama3.2 default]
+    B -->|ollama| E[OpenAI-compat client\nlocalhost:11434\nllama3.2 default]
     C & D & E --> F[Agentic loop\ntool_calls ↔ browser]
 ```
 
@@ -127,19 +124,28 @@ flowchart TD
 
 ```
 MCP_PlayWright/
-└── agent_browser/
-    ├── main.py              # CLI entry point — argparse + asyncio
-    ├── conftest.py          # pytest fixture: config (session-scoped)
-    ├── .env.example         # Template for environment variables
-    ├── requirements.txt     # Python dependencies
+├── .github/
+│   └── workflows/
+│       └── lint.yml            # CI: ruff + mypy + pip-audit on push/PR
+├── .pre-commit-config.yaml     # Local git commit hooks
+├── pyproject.toml              # Root package metadata + ruff/mypy config
+├── README.md
+├── LICENSE
+└── agent_browser/              # Runnable application
+    ├── main.py                 # CLI entry point (argparse + asyncio)
+    ├── conftest.py             # pytest session-scoped `config` fixture
+    ├── pytest.ini              # pytest config (browser: chromium, testpaths: tests/)
+    ├── .env.example            # Template — copy to .env and fill in
+    ├── pyproject.toml          # Package deps (playwright, openai, anthropic…)
+    ├── requirements.txt        # pip-installable dep list
     ├── agent/
-    │   ├── browser.py       # Browser class — 9 async actions via Playwright
-    │   ├── tools.py         # Tool schemas (OpenAI + Anthropic format) & dispatcher
-    │   ├── prompts.py       # System prompt builder (login hint + extra context)
-    │   ├── runner.py        # TaskConfig dataclass + agent loops per provider
-    │   └── writer.py        # Parses LLM output and writes files to disk
+    │   ├── browser.py          # Browser class — async Playwright actions
+    │   ├── tools.py            # Tool schemas (OpenAI + Anthropic) & dispatcher
+    │   ├── prompts.py          # System prompt builder
+    │   ├── runner.py           # TaskConfig dataclass + per-provider agent loops
+    │   └── writer.py           # Parses LLM output and writes files to disk
     └── utils/
-        └── config.py        # Config class — reads BASE_URL, LOGIN_USER, LOGIN_PASSWORD
+        └── config.py           # Config class — reads BASE_URL, LOGIN_USER, LOGIN_PASSWORD
 ```
 
 ---
@@ -177,10 +183,10 @@ OPENAI_API_KEY=sk-...
 Run the generator:
 
 ```bash
-python main.py "Login, navigate to Auditoria > Lista de Auditorias and click Iniciar Auditoria"
+python main.py "Login and navigate to the dashboard"
 ```
 
-The agent navigates your app, inspects the DOM, executes the flow, and writes `pages/` + `tests/` into the current directory.
+The agent opens a browser, inspects the live DOM, executes the flow, and writes `pages/` + `tests/` to disk.
 
 ---
 
@@ -219,9 +225,9 @@ python main.py "Checkout flow" \
   --headless \
   --output ./generated
 
-# Provide extra context to help the agent navigate
+# Extra context to help the agent navigate a SPA
 python main.py "Create a new report" \
-  --context "After login the app redirects to /dashboard. Sidebar has 'Relatórios' entry. Uses React SPA."
+  --context "After login the app redirects to /dashboard. Sidebar has a 'Reports' entry. Uses React SPA."
 
 # Use a local Ollama model
 python main.py "Test login" \
@@ -233,7 +239,7 @@ python main.py "Test login" \
 
 ## LLM providers
 
-| `LLM_PROVIDER` | Default model | Required |
+| `LLM_PROVIDER` | Default model | Required env var |
 |---|---|---|
 | `openai` (default) | `gpt-4o` | `OPENAI_API_KEY` |
 | `claude` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
@@ -249,25 +255,67 @@ LLM_MODEL=gpt-4o-mini
 python main.py "..." --provider claude --model claude-opus-4-8
 ```
 
+Both OpenAI and Ollama share the same `_run_openai_compat` loop (OpenAI-compatible API). Claude uses `_run_anthropic` with the Anthropic SDK. Both loops share the same `Browser` instance and tool dispatcher.
+
 ---
 
-## Browser tools (agent capabilities)
+## Browser tools
 
-The agent has 9 browser tools available. The LLM decides which to call and when.
+The LLM has the following tools available. It decides which to call and when, but is instructed to **always call `browser_get_inputs` before filling any field** — selectors are never guessed.
+
+### Navigation
 
 | Tool | Description |
 |---|---|
-| `browser_navigate` | Navigate to a URL, waits for `networkidle` |
-| `browser_get_inputs` | List all visible `input`, `textarea`, `select` elements with real `id`, `name`, `type`, `placeholder`, `label` attributes |
-| `browser_snapshot` | Return the accessibility tree (roles, names, states) — used after every action to understand current page state |
-| `browser_click` | Click an element by selector; waits for `networkidle` afterwards |
-| `browser_fill` | Fill a form field with a value; waits for element to be visible first |
-| `browser_press_key` | Press a keyboard key (e.g. `Enter`, `Tab`, `Escape`) |
-| `browser_get_text` | Return all visible text from `<body>` (up to 4 000 chars) |
-| `browser_get_html` | Return inner HTML of a CSS selector (up to 6 000 chars) |
-| `browser_wait` | Wait N milliseconds (useful for animations, dropdowns) |
+| `browser_navigate` | Go to a URL, waits for `networkidle` |
+| `browser_navigate_back` | Go back in history |
+| `browser_navigate_forward` | Go forward in history |
+| `browser_reload` | Reload the current page |
+| `browser_get_url` | Return the current page URL |
 
-> The agent is instructed to **always call `browser_get_inputs` before filling any field** — it never guesses selectors.
+### Inspection
+
+| Tool | Description |
+|---|---|
+| `browser_get_inputs` | List all visible `input`, `textarea`, `select` with real `id`, `name`, `type`, `placeholder`, `label` |
+| `browser_snapshot` | Accessibility tree (roles, names, states) — used after every important action |
+| `browser_get_text` | All visible text from `<body>` (up to 4 000 chars) |
+| `browser_get_html` | Inner HTML of a CSS selector (up to 6 000 chars) |
+| `browser_get_console_messages` | Browser console log (errors, warnings, info) |
+
+### Frames
+
+| Tool | Description |
+|---|---|
+| `browser_get_frames` | List all frames with index, name, URL |
+| `browser_switch_frame` | Switch active context to a frame (by index, name, or URL substring) |
+| `browser_switch_main_frame` | Return to the main page context |
+
+### Interaction
+
+| Tool | Description |
+|---|---|
+| `browser_click` | Click an element by selector; waits for `networkidle` |
+| `browser_fill` | Fill a form field; waits for element to be visible first |
+| `browser_type_text` | Type character by character (useful when `fill` bypasses JS input events) |
+| `browser_fill_form` | Fill multiple fields in one call |
+| `browser_press_key` | Press a key (`Enter`, `Tab`, `Escape`, etc.) |
+| `browser_wait` | Wait N milliseconds (animations, dropdowns) |
+| `browser_resize` | Resize the browser viewport |
+
+### Timeouts and content limits
+
+Defined as module-level constants in `browser.py`:
+
+| Constant | Value | Used for |
+|---|---|---|
+| `_TIMEOUT_NAVIGATE` | 30 000 ms | `page.goto()` |
+| `_TIMEOUT_CLICK` | 10 000 ms | `locator.click()`, `wait_for(visible)` |
+| `_TIMEOUT_LOAD` | 15 000 ms | `wait_for_load_state("networkidle")` |
+| `_SNAPSHOT_LIMIT` | 8 000 chars | Accessibility tree truncation |
+| `_TEXT_LIMIT` | 4 000 chars | `get_text()` truncation |
+| `_HTML_LIMIT` | 6 000 chars | `get_html()` truncation |
+| `_CONSOLE_LIMIT` | 100 entries | Max console messages kept in memory |
 
 ---
 
@@ -277,15 +325,15 @@ The agent produces files in the **Page Object Model** pattern:
 
 ```
 pages/
-└── login_page.py          # Page class with locators and actions
-└── auditoria_page.py
+├── login_page.py
+└── dashboard_page.py
 
 tests/
-└── test_login.py          # pytest test using the page objects
-└── test_auditoria.py
+├── test_login.py
+└── test_dashboard.py
 ```
 
-### Page object example (auto-generated)
+### Page object example
 
 ```python
 # pages/login_page.py
@@ -301,12 +349,12 @@ class LoginPage:
         self.page.goto(self.config.base_url)
 
     def login(self):
-        self.page.get_by_label("Usuário").fill(self.config.login_user)
-        self.page.get_by_label("Senha").fill(self.config.login_password)
-        self.page.get_by_role("button", name="Entrar", exact=True).click()
+        self.page.get_by_label("Username").fill(self.config.login_user)
+        self.page.get_by_label("Password").fill(self.config.login_password)
+        self.page.get_by_role("button", name="Sign in", exact=True).click()
 ```
 
-### Test example (auto-generated)
+### Test example
 
 ```python
 # tests/test_login.py
@@ -321,37 +369,27 @@ def test_login(page: Page, config: Config):
     page.wait_for_url("**/dashboard")
 ```
 
-Locator priority enforced in the system prompt:
+### Locator priority (enforced in the system prompt)
 
 1. `get_by_role(exact=True)`
 2. `get_by_label`
 3. `get_by_text(exact=True)`
 4. `.first` when there is ambiguity
 
+> `pages/` and `tests/` are in `.gitignore`. Review the generated files and commit them once you have approved them.
+
 ---
 
 ## Running generated tests
 
 ```bash
-# Review generated files first
-cat pages/*.py
-cat tests/*.py
-
-# Run all tests
-pytest
-
-# Run with visible browser (headed mode)
-pytest --headed
-
-# Run specific test
-pytest tests/test_login.py -v
+# From agent_browser/
+pytest                          # all tests, headless (chromium)
+pytest --headed                 # visible browser
+pytest tests/test_login.py -v   # specific test, verbose
 ```
 
-> `pages/` and `tests/` are in `.gitignore`. Review the generated files and commit them once approved.
-
-### pytest fixtures (conftest.py)
-
-`conftest.py` provides a session-scoped `config` fixture that loads `.env`:
+`conftest.py` provides a session-scoped `config` fixture that reads `.env`:
 
 ```python
 @pytest.fixture(scope="session")
@@ -363,15 +401,62 @@ Tests receive `page: Page` from `pytest-playwright` and `config: Config` from th
 
 ---
 
+## Code quality
+
+### Pre-commit hooks
+
+Install once after cloning:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+From then on, every `git commit` automatically runs:
+
+| Hook | What it checks |
+|---|---|
+| `trailing-whitespace` | Trailing spaces in any file |
+| `end-of-file-fixer` | Ensures files end with a newline |
+| `check-yaml` / `check-toml` | Syntax of config files |
+| `check-merge-conflict` | Leftover merge conflict markers |
+| `debug-statements` | `pdb` / `breakpoint()` left in code |
+| `ruff` (lint) | PEP 8, unused imports, bugbear, pyupgrade — auto-fixes with `--fix` |
+| `ruff-format` | Code formatting (replaces black) |
+| `mypy` | Static type checking |
+| `pip-audit` | Dependency vulnerability scan (runs only when `requirements.txt` changes) |
+
+Run manually against all files at any time:
+
+```bash
+pre-commit run --all-files
+```
+
+### GitHub Actions CI
+
+`.github/workflows/lint.yml` runs the same checks on every push to `main`/`dev` and on every pull request:
+
+```
+Lint & Validate
+├── Ruff lint          (ruff check)
+├── Ruff format check  (ruff format --check)
+├── Mypy type check
+└── pip-audit          (dependency CVE scan)
+```
+
+Linting rules are configured in the root `pyproject.toml` under `[tool.ruff]` and `[tool.mypy]`.
+
+---
+
 ## Advanced usage
 
 ### Extra context (`--context`)
 
-Pass free-form text about your app to help the agent navigate without trial and error:
+Pass free-form text about your app so the agent does not waste turns guessing navigation:
 
 ```bash
 python main.py "Create a purchase order" \
-  --context "Single-page React app. After login, goes to /home. PO form is under Menu > Compras > Nova O.C. Fields use custom Angular components."
+  --context "Single-page React app. After login goes to /home. PO form is under Menu > Purchases > New PO. Fields use custom Angular components."
 ```
 
 ### Custom output directory
@@ -380,7 +465,27 @@ python main.py "Create a purchase order" \
 python main.py "Onboarding flow" --output ./tests/e2e
 ```
 
-### Environment file variables
+Generated `pages/` and `tests/` will be written inside `./tests/e2e/`.
+
+### Multi-frame pages
+
+If your app uses iframes, the agent can list all frames and switch context:
+
+```
+browser_get_frames  → [{index: 0, name: "main", ...}, {index: 1, name: "embed", ...}]
+browser_switch_frame(index=1)
+browser_get_inputs  → (inspects inside the iframe)
+browser_fill(...)
+browser_switch_main_frame
+```
+
+### Max tokens
+
+`runner.py` sets `_MAX_TOKENS = 8_096` for all LLM responses. Increase this constant if the agent truncates on complex flows.
+
+---
+
+## Environment variables
 
 | Variable | Required | Description |
 |---|---|---|
@@ -392,6 +497,8 @@ python main.py "Onboarding flow" --output ./tests/e2e
 | `OPENAI_API_KEY` | If using `openai` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | If using `claude` | Anthropic API key |
 | `OLLAMA_BASE_URL` | If using `ollama` | Default: `http://localhost:11434/v1` |
+
+Copy `.env.example` to `.env` and fill in the values. The `.env` file is git-ignored.
 
 ---
 

@@ -1,5 +1,7 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 from utils.config import Config
 
 
@@ -26,8 +28,7 @@ def screenshot_on_failure(request):
     snapshot_dir = Path("tests/snapshots")
     snapshot_dir.mkdir(parents=True, exist_ok=True)
     safe_name = (
-        request.node.nodeid
-        .replace("/", "_")
+        request.node.nodeid.replace("/", "_")
         .replace("\\", "_")
         .replace("::", "_")
         .replace(".py", "")
