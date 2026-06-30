@@ -27,6 +27,157 @@ AI-powered browser automation framework that generates complete Playwright test 
 
 ---
 
+## Como funciona na prática — guia para quem não é programador
+
+> Esta seção explica o funcionamento do projeto em linguagem simples, com analogias e ilustrações. Se você já conhece a parte técnica, pode pular direto para [Overview](#overview).
+
+### A analogia: um assistente que aprende a testar sites
+
+Imagine que você precisa testar se o login de um sistema funciona corretamente. Normalmente, você contrataria um QA (pessoa especialista em testes) para fazer isso. Esse profissional vai:
+
+1. Abrir o navegador manualmente
+2. Olhar a tela e identificar os campos ("aqui tem um campo de usuário, ali tem senha")
+3. Preencher os dados de teste e clicar em "Entrar"
+4. Verificar se foi para a página certa
+5. Escrever um roteiro documentando o que fez, para que qualquer outro programador consiga repetir o teste automaticamente
+
+**Este projeto faz exatamente isso — só que com Inteligência Artificial no lugar do QA humano.**
+
+---
+
+### A jornada completa em 5 etapas
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   VOCÊ digita uma instrução em linguagem natural                │
+│   Ex: "Faça login e navegue até o painel de controle"          │
+│                                                                 │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ETAPA 1 — Configuração                                         │
+│                                                                 │
+│  O sistema lê o arquivo .env com as informações do seu site:    │
+│  • URL do site (endereço)                                       │
+│  • Usuário e senha para login                                   │
+│  • Qual IA usar (OpenAI, Claude ou Ollama)                      │
+│                                                                 │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ETAPA 2 — O navegador abre                                     │
+│                                                                 │
+│  Um navegador Chromium real é iniciado (pode aparecer           │
+│  na tela ou rodar invisível em segundo plano).                  │
+│  O site é acessado automaticamente.                             │
+│                                                                 │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ETAPA 3 — A IA "lê" a página e age (loop inteligente)         │
+│                                                                 │
+│  ┌──────────────┐    pergunta     ┌──────────────────────────┐  │
+│  │              │ ─────────────► │                          │  │
+│  │   IA (LLM)   │                │   Ferramentas de Browser │  │
+│  │  raciocina   │ ◄───────────── │  • Inspecionar campos    │  │
+│  │  e decide    │   resposta     │  • Clicar botões         │  │
+│  │              │                │  • Preencher formulários │  │
+│  └──────────────┘                │  • Tirar "foto" da tela  │  │
+│         │                        └──────────────────────────┘  │
+│         │                                    │                  │
+│         │          O navegador executa       │                  │
+│         └────────────────────────────────────┘                  │
+│                                                                 │
+│  Esse ciclo se repete até a tarefa estar completa.              │
+│  A IA nunca "chuta" um campo — ela SEMPRE inspeciona            │
+│  a página antes de preencher qualquer coisa.                    │
+│                                                                 │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ETAPA 4 — O código de teste é gerado                           │
+│                                                                 │
+│  Com base no que fez, a IA escreve dois tipos de arquivo:       │
+│                                                                 │
+│  pages/login_page.py  ──►  "Como navegar na tela de login"     │
+│  tests/test_login.py  ──►  "O teste que verifica o login"      │
+│                                                                 │
+│  Esses arquivos usam o padrão Page Object Model (POM):          │
+│  separa "como mexer no site" de "o que verificar no teste".     │
+│                                                                 │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ETAPA 5 — Você revisa e roda os testes                         │
+│                                                                 │
+│  $ pytest                                                       │
+│                                                                 │
+│  O pytest executa os arquivos gerados.                          │
+│  Se o login funcionar ✔  o teste passa (verde).                 │
+│  Se algo estiver errado ✖  o teste falha e avisa você.          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### O que acontece por dentro quando você digita um comando?
+
+Veja um exemplo concreto. Você digita:
+
+```bash
+python main.py "Fazer login e ir até o dashboard"
+```
+
+O que acontece nos bastidores:
+
+| # | O que ocorre | Quem faz |
+|---|---|---|
+| 1 | O programa lê o `.env` e descobre a URL, usuário, senha e qual IA usar | `main.py` + `config.py` |
+| 2 | Um navegador Chromium abre e acessa o site | `browser.py` (Playwright) |
+| 3 | Sua instrução é enviada para a IA com um contexto completo de o que ela pode fazer | `runner.py` + `prompts.py` |
+| 4 | A IA responde: "Preciso ver os campos da página" → chama `browser_get_inputs` | IA (LLM) |
+| 5 | O sistema lista todos os campos visíveis: `id="username"`, `id="password"`, botão "Entrar" | `tools.py` + `browser.py` |
+| 6 | A IA responde: "Agora preencho o usuário" → chama `browser_fill` | IA (LLM) |
+| 7 | O campo de usuário é preenchido no navegador real | `browser.py` (Playwright) |
+| 8 | Isso se repete para senha, clique no botão, verificação da URL final | Loop entre IA e browser |
+| 9 | A IA encerra a tarefa e escreve o código como `<file path="pages/...">...</file>` | IA (LLM) |
+| 10 | O código é extraído e salvo nos arquivos `.py` corretos | `writer.py` |
+
+---
+
+### Por que isso é melhor do que escrever testes à mão?
+
+| Problema ao escrever testes manualmente | Como este projeto resolve |
+|---|---|
+| Precisa saber programar Playwright | Basta descrever o fluxo em texto |
+| Seletores CSS quebram quando o HTML muda | A IA usa seletores semânticos (por rótulo, papel, texto) — mais estáveis |
+| Horas para criar um teste simples | Minutos para gerar um conjunto completo |
+| Fácil esquecer de testar um campo | A IA inspeciona todos os campos da página automaticamente |
+| Difícil manter testes com o site evoluindo | Basta rodar o gerador de novo com a mesma instrução |
+
+---
+
+### Glossário rápido para leigos
+
+| Termo | O que significa na prática |
+|---|---|
+| **Playwright** | A ferramenta que controla o navegador automaticamente (como um "piloto automático" para o Chrome) |
+| **pytest** | O programa que roda os testes e diz se passaram ou falharam |
+| **Page Object Model (POM)** | Uma forma de organizar o código: um arquivo descreve a página, outro arquivo descreve o teste. Facilita manutenção. |
+| **LLM / IA** | O modelo de linguagem (GPT-4, Claude etc.) que entende sua instrução e decide o que fazer |
+| **Headless** | O navegador roda sem janela visível — mais rápido, útil em servidores |
+| **`.env`** | Arquivo de configuração com suas senhas e URLs — nunca é enviado ao Git |
+| **Tool call** | A IA "pede" ao sistema para executar uma ação no navegador (clicar, preencher, tirar snapshot) |
+
+---
+
 ## Overview
 
 Describe a user flow in natural language. The agent:
