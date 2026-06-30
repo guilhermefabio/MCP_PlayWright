@@ -30,6 +30,7 @@ from dotenv import load_dotenv
 from agent.runner import TaskConfig, run_agent
 
 BASE_DIR = Path(__file__).parent
+_DEFAULT_OUTPUT = BASE_DIR  # pages/ and tests/ live inside agent_browser/
 
 
 def _configure_logging() -> None:
@@ -66,8 +67,8 @@ def main() -> None:
     parser.add_argument(
         "--output",
         "-o",
-        default=".",
-        help="Output directory for generated files (default: current directory)",
+        default=str(_DEFAULT_OUTPUT),
+        help="Output directory for generated files (default: agent_browser/)",
     )
     parser.add_argument(
         "--context",

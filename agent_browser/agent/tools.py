@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -410,6 +411,19 @@ TOOLS_OPENAI: list[dict[str, Any]] = [
             },
         },
     },
+    # ── Flow control ─────────────────────────────────────────────────────────
+    {
+        "type": "function",
+        "function": {
+            "name": "task_complete",
+            "description": (
+                "Chame esta ferramenta EXATAMENTE UMA VEZ quando tiver executado com sucesso "
+                "todos os passos do fluxo descrito. Após isso o sistema pedirá que você gere "
+                "os arquivos de código — não use mais nenhuma outra ferramenta de browser."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
     # ── Screenshot ───────────────────────────────────────────────────────────
     {
         "type": "function",
@@ -472,7 +486,11 @@ TOOLS_ANTHROPIC = [
 ]
 
 
-async def call_tool(browser: "Browser", name: str, args: dict) -> str:
+async def _noop() -> str:
+    return "ok"
+
+
+async def call_tool(browser: "Browser", name: str, args: dict, output_dir: Path = Path(".")) -> str:
     try:
         dispatch = {
             # Navigation
@@ -521,9 +539,11 @@ async def call_tool(browser: "Browser", name: str, args: dict) -> str:
                 args.get("accept", True),
                 args.get("prompt_text", ""),
             ),
-            # Screenshot
+            # Flow control
+            "task_complete": lambda: _noop(),
+            # Screenshot — always saved inside output_dir/screenshots/
             "browser_take_screenshot": lambda: browser.take_screenshot(
-                args.get("path", "screenshot.png"),
+                str(output_dir / "screenshots" / Path(args.get("path", "screenshot.png")).name),
                 args.get("full_page", False),
             ),
             # Misc

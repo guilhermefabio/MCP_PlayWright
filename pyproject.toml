@@ -57,8 +57,8 @@ no_strict_optional = true
 files = ["agent_browser"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
+testpaths = ["agent_browser/tests"]
+pythonpath = ["agent_browser", "agent_browser/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

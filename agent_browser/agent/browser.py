@@ -259,6 +259,9 @@ class Browser:
     # ── Screenshot ───────────────────────────────────────────────────────────
 
     async def take_screenshot(self, path: str = "screenshot.png", full_page: bool = False) -> str:
+        from pathlib import Path
+
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
         await self._p.screenshot(path=path, full_page=full_page)
         return f"Screenshot salvo em: {path}"
 

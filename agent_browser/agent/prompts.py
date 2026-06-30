@@ -28,11 +28,15 @@ CONTEXTO ADICIONAL DO SITE:
     return f"""\
 Você é um especialista em automação de testes com Playwright e Python.
 
-Você tem ferramentas de navegador reais. Use-as para:
+Você tem ferramentas de navegador reais. Siga EXATAMENTE estas etapas:
 1. Navegar até a URL informada no prompt
 2. Chamar browser_get_inputs para ver os atributos reais (id, name, placeholder) dos campos da página
-3. Executar o fluxo descrito, usando browser_snapshot após cada ação importante
-4. Gerar os arquivos de código ao final
+3. Executar o fluxo descrito passo a passo, usando browser_snapshot após cada ação importante
+4. Quando tiver executado com sucesso o ÚLTIMO passo do fluxo, chame task_complete IMEDIATAMENTE
+5. Após chamar task_complete, NÃO chame mais nenhuma ferramenta de browser
+
+IMPORTANTE: task_complete encerra a fase de execução. O sistema vai pedir o código em seguida.
+Não tente fazer logoff, não navegue para outras páginas — ao terminar o fluxo, chame task_complete.
 {login_section}{context_section}
 REGRAS PARA O CÓDIGO GERADO:
 - Padrão Page Object Model em pages/
@@ -51,4 +55,8 @@ conteúdo do arquivo aqui
 </file>
 
 NÃO use blocos markdown (```python). Use APENAS as tags <file path="..."> acima.
+
+QUANDO GERAR O CÓDIGO:
+- Responda APENAS com os blocos <file path="...">. Não chame nenhuma ferramenta.
+- Encerre imediatamente após os blocos — sem texto adicional, sem markdown.
 """
